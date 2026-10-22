@@ -1,0 +1,307 @@
+:root {
+  --bg: #121214;
+  --panel: #1b1b1f;
+  --panel-2: #232328;
+  --border: #33333a;
+  --text: #e8e8ea;
+  --muted: #9a9aa5;
+  --accent: #4ea1ff;
+  --accent-dim: #2d5f9a;
+  --warn: #e0b341;
+  --error: #e06c6c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 14px;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ---- control bar ---- */
+.control-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.brand h1 {
+  font-size: 16px;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.conn {
+  font-size: 12px;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+.conn.on {
+  color: #5fbf77;
+  background: rgba(95, 191, 119, 0.12);
+}
+.conn.off {
+  color: var(--muted);
+  background: rgba(154, 154, 165, 0.12);
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.group label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+select,
+input {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.file-path {
+  width: 260px;
+}
+
+.current strong {
+  font-size: 16px;
+  min-width: 34px;
+  text-align: center;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.buttons {
+  gap: 6px;
+}
+
+button {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---- main area ---- */
+.main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---- melody track ---- */
+.melody-track {
+  flex: 1;
+  min-width: 0;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.track-scroll {
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.track-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 30px 10px;
+  min-width: max-content;
+}
+
+.node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 68px;
+  flex-shrink: 0;
+}
+
+.node:hover {
+  border-color: var(--accent-dim);
+}
+
+.node.selected {
+  border-color: var(--accent);
+  background: #1d2a3d;
+}
+
+.node.corrected {
+  border-style: dashed;
+}
+
+.node .index {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.node .solfege {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.node .name {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.node .time {
+  font-size: 11px;
+  color: #6f6f7a;
+}
+
+.node.current {
+  border-style: dashed;
+  border-color: var(--warn);
+  opacity: 0.85;
+}
+
+.connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 0 10px;
+  flex-shrink: 0;
+}
+
+.connector .arrow {
+  font-size: 18px;
+  color: var(--accent);
+}
+
+.connector .interval {
+  font-size: 11px;
+  color: var(--text);
+}
+
+.connector .delta {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.connector.pending {
+  color: var(--warn);
+}
+
+.empty {
+  color: var(--muted);
+  padding: 40px;
+}
+
+/* ---- inspector ---- */
+.inspector {
+  width: 280px;
+  flex-shrink: 0;
+  padding: 16px;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.inspector h2 {
+  font-size: 14px;
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.inspector dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 0 0 14px;
+}
+
+.inspector dt {
+  color: var(--muted);
+}
+
+.inspector dd {
+  margin: 0;
+}
+
+.edit-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.edit-row input {
+  width: 100%;
+}
+
+.error {
+  color: var(--error);
+  font-size: 12px;
+}
+
+/* ---- diagnostics ---- */
+.diagnostics {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.diagnostics .error {
+  color: var(--error);
+}
