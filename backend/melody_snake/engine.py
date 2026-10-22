@@ -9,8 +9,8 @@ import numpy as np
 from .pitch.yin import YinDetector
 from .theory.midi import frequency_to_continuous_midi
 
-DEFAULT_FRAME_SIZE = 2048
-DEFAULT_HOP = 512
+DEFAULT_FRAME_SIZE = 1536
+DEFAULT_HOP = 256
 
 
 def detect_frame(detector, window, sample_rate, timestamp):

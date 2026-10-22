@@ -16,6 +16,9 @@ export interface SegmentationConfig {
   minGapMs: number;
   /** Consecutive frames at a new pitch needed to confirm a note change. */
   candidateConfirmFrames: number;
+  /** Max pitch spread (semitones) over the confirm window; beyond it the pitch
+   *  is still gliding, so the change is NOT yet confirmed. */
+  transitionStabilitySemitones: number;
   /** Frames with confidence below this are treated as unvoiced. */
   minConfidence: number;
   /** Max rolling-window size for the robust pitch median. */
@@ -24,9 +27,10 @@ export interface SegmentationConfig {
 
 export const DEFAULT_SEGMENTATION_CONFIG: SegmentationConfig = {
   pitchToleranceSemitones: 0.7,
-  minNoteDurationMs: 40,
+  minNoteDurationMs: 30,
   minGapMs: 45,
   candidateConfirmFrames: 3,
+  transitionStabilitySemitones: 0.3,
   minConfidence: 0.25,
   maxMidiBuffer: 12,
 };
@@ -168,7 +172,7 @@ export class NoteEventDetector {
       return outputs;
     }
 
-    const midi = frame.roundedMidi as number;
+    const midi = frame.continuousMidi as number;
     const now = frame.timestamp;
 
     if (this.state === 'IDLE') {
@@ -232,6 +236,11 @@ export class NoteEventDetector {
         this.transitionBuffer.push(midi);
         this.transitionConfidences.push(frame.confidence);
         if (this.transitionCount >= this.cfg.candidateConfirmFrames) {
+          const recent = this.transitionBuffer.slice(-this.cfg.candidateConfirmFrames);
+          const spread = Math.max(...recent) - Math.min(...recent);
+          if (spread > this.cfg.transitionStabilitySemitones) {
+            return outputs; // pitch is still gliding, not a settled note
+          }
           // Confirmed pitch change. Capture the new note's data BEFORE
           // commitNote() resets the transition buffers, then commit the old
           // note and start the new one.

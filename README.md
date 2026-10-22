@@ -124,19 +124,30 @@ cd D:\melody-snake\backend && ..\.venv\Scripts\python.exe -m melody_snake.main
 ## 七、测试
 
 ```bash
-# 前端（Vitest，44 个测试）
+# 前端（Vitest，45 个测试）
 cd D:\melody-snake\frontend && npm test
 
 # 前端类型检查 + 构建
 cd D:\melody-snake\frontend && npm run build
 
-# 后端（pytest，17 个测试，含 WebSocket 集成）
+# 后端（pytest，20 个测试，含 WebSocket 集成 + 基准回归）
 cd D:\melody-snake\backend && ..\.venv\Scripts\python.exe -m pytest -q
 ```
 
 覆盖：MIDI/音名/八度转换、音程命名、唱名映射（含调外音）、轨迹不可覆盖 + 编辑 + 撤销、音符切分（长音/快音/滑音/颤音/重起音/静音/异常值）、YIN（正弦/静音/噪声/高低音）、文件→YIN→WebSocket→音符事件全流水线、导出解析。
 
 详见 [`docs/test-report.md`](docs/test-report.md)。
+
+### 基准（真实音频验证）
+
+第二阶段新增了可复现基准工具（`backend/benchmark/`）：WAV + 人工标注真值 → 全流水线 → 音符级 precision/recall/边界误差/八度错误率，输出 JSON/CSV。9 个合成样本（单音/类钢琴/类吉他/快音/滑音/颤音/衰减/重复音/混音压力测试）结果与指标公式见 [`docs/phase2-report.md`](docs/phase2-report.md)。
+
+```bash
+cd D:\melody-snake\frontend && node scripts/build-segment-cli.mjs && cd ..
+cd D:\melody-snake\backend
+..\.venv\Scripts\python.exe -m benchmark.generate_dataset D:\melody-snake\benchmark_data
+..\.venv\Scripts\python.exe -m benchmark.benchmark --dataset D:\melody-snake\benchmark_data --out-dir D:\melody-snake\benchmark_results
+```
 
 ---
 

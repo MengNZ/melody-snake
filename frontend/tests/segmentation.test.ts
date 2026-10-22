@@ -102,4 +102,29 @@ describe('NoteEventDetector', () => {
     for (const out of d.flush()) if (out.type === 'commit') events.push(out.event.midiNote);
     expect(events.length).toBeLessThan(3);
   });
+
+  it('a FAST glide does not split into spurious intermediate notes', () => {
+    // Regression: a 4-semitone glide over ~160ms used to be committed as a
+    // series of intermediate notes (61, 62, 63). With continuous-midi stability
+    // checking it must settle into at most the start and the settled pitch.
+    const d = new NoteEventDetector();
+    const events: number[] = [];
+    let tMs = 0;
+    for (let i = 0; i < 16; i++) {
+      const midi = 60 + (4 * i) / 15; // glide 60 -> 64
+      for (const out of d.process(pitchFrame(tMs / 1000, midi))) {
+        if (out.type === 'commit') events.push(out.event.midiNote);
+      }
+      tMs += 10;
+    }
+    for (let i = 0; i < 20; i++) {
+      for (const out of d.process(pitchFrame(tMs / 1000, 64))) {
+        if (out.type === 'commit') events.push(out.event.midiNote);
+      }
+      tMs += 10;
+    }
+    for (const out of d.flush()) if (out.type === 'commit') events.push(out.event.midiNote);
+    expect(events.length).toBeLessThanOrEqual(2);
+    expect(events[events.length - 1]).toBe(64);
+  });
 });
