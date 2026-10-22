@@ -17,7 +17,7 @@ from melody_snake.engine import process_audio
 
 from .metrics import evaluate
 
-DEFAULT_SEGMENT_CLI = Path(__file__).resolve().parents[2] / "frontend" / "dist" / "segment-cli.mjs"
+DEFAULT_SEGMENT_CLI = Path(__file__).resolve().parents[2] / "frontend" / "scripts" / "dist" / "segment-cli.mjs"
 
 CSV_COLUMNS = [
     "name", "n_reference", "n_predicted", "hits", "false_negatives", "false_positives",

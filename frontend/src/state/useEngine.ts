@@ -19,6 +19,7 @@ export function useEngine() {
   const [connected, setConnected] = useState(false);
   const [source, setSource] = useState<SourceType>('system');
   const [filePath, setFilePath] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
 
   const clientRef = useRef<BackendClient | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -97,6 +98,39 @@ export function useEngine() {
     scheduleUpdate();
   }, [engine, scheduleUpdate]);
 
+  const analyze = useCallback(
+    async (duration: number) => {
+      setAnalyzing(true);
+      try {
+        const res = await fetch('http://127.0.0.1:8000/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ duration, device: 'cpu' }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || '分析失败');
+        engine.store.newTrack('system');
+        for (const n of data.notes ?? []) {
+          engine.store.appendNote({
+            startTime: n.startTime,
+            endTime: n.endTime,
+            midiNote: n.midiNote,
+            confidence: n.confidence ?? 0.9,
+            status: 'confirmed',
+            source: 'auto',
+          });
+        }
+        setStatus({ state: 'ended', sampleRate: data.sample_rate ?? null, source: 'system', error: null });
+        scheduleUpdate();
+      } catch (e) {
+        setStatus((prev) => ({ ...prev, state: 'error', error: String(e) }));
+      } finally {
+        setAnalyzing(false);
+      }
+    },
+    [engine, scheduleUpdate],
+  );
+
   const exportJSON = useCallback(() => {
     const s = engine.store.getSnapshot();
     return trackToJSON(s.track, s.intervals);
@@ -130,6 +164,8 @@ export function useEngine() {
     filePath,
     setFilePath,
     selectedKey: snap.track.track.selectedKey,
+    analyzing,
+    analyze,
     start,
     pause,
     resume,

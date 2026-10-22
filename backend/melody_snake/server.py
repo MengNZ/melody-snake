@@ -24,12 +24,19 @@ import time
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from .audio.devices import list_sources
 from .audio.file_source import FileAudioSource
 from .audio.loopback_source import LoopbackSource
 from .audio.mic_source import MicSource
 from .engine import StreamingPitchProcessor
+from .transcribe import record_and_transcribe
+
+
+class AnalyzeRequest(BaseModel):
+    duration: float = 20.0
+    device: str = "cpu"
 
 app = FastAPI(title="Melody Snake backend")
 
@@ -49,6 +56,14 @@ def health():
 @app.get("/sources")
 def sources():
     return list_sources()
+
+
+@app.post("/analyze")
+def analyze(req: AnalyzeRequest):
+    """Record `duration` seconds of system audio, separate vocals (demucs),
+    extract the lead melody notes, and return them. Blocking (~duration + ~20s)."""
+    result = record_and_transcribe(req.duration, device=req.device)
+    return {"ok": True, **result}
 
 
 def _build_source(source_type, file_path, device_index):

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { SourceType } from '../ws/client';
 import { SUPPORTED_MAJOR_KEYS } from '../core/solfege';
 import { solfegeLabel } from '../core/solfege';
@@ -12,7 +13,9 @@ interface Props {
   onKeyChange: (k: string) => void;
   connected: boolean;
   running: boolean;
+  analyzing: boolean;
   current: CurrentNoteInfo | null;
+  onAnalyze: (duration: number) => void;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -23,6 +26,7 @@ interface Props {
 }
 
 export function ControlBar(props: Props) {
+  const [duration, setDuration] = useState(20);
   const currentLabel = props.current ? solfegeLabel(props.current.midiNote, props.selectedKey) : '—';
   return (
     <header className="control-bar">
@@ -66,6 +70,18 @@ export function ControlBar(props: Props) {
       </div>
 
       <div className="group buttons">
+        <button className="analyze" onClick={() => props.onAnalyze(duration)} disabled={props.analyzing}>
+          {props.analyzing ? '分析中…（约40秒）' : `分析系统音频 ${duration}s`}
+        </button>
+        <input
+          className="duration"
+          type="number"
+          min={5}
+          max={120}
+          value={duration}
+          onChange={(e) => setDuration(Number(e.target.value) || 20)}
+          title="录制时长（秒）"
+        />
         <button onClick={props.onStart} disabled={props.running}>
           开始
         </button>

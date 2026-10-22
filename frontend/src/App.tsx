@@ -30,7 +30,9 @@ export default function App() {
         onKeyChange={engine.setKey}
         connected={engine.connected}
         running={engine.status.state === 'running'}
+        analyzing={engine.analyzing}
         current={snap.current}
+        onAnalyze={engine.analyze}
         onStart={engine.start}
         onPause={engine.pause}
         onResume={engine.resume}

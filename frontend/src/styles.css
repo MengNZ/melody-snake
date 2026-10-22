@@ -111,6 +111,16 @@ input {
   gap: 6px;
 }
 
+button.analyze {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+input.duration {
+  width: 64px;
+}
+
 button {
   background: var(--panel-2);
   color: var(--text);

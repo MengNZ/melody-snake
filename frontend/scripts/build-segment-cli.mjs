@@ -8,7 +8,7 @@ await build({
   platform: 'node',
   format: 'esm',
   target: 'node18',
-  outfile: 'dist/segment-cli.mjs',
+  outfile: 'scripts/dist/segment-cli.mjs',
 });
 
-console.log('built dist/segment-cli.mjs');
+console.log('built scripts/dist/segment-cli.mjs');
