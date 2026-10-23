@@ -10,6 +10,7 @@ import json
 import os
 import subprocess
 import tempfile
+import time
 import wave
 from pathlib import Path
 
@@ -67,7 +68,7 @@ def separate_vocals(mix_path, out_dir, device="cpu"):
     return vocals
 
 
-def extract_notes(vocals_path):
+def extract_notes(vocals_path, frames_out=None):
     """vocals WAV -> YIN pitch frames -> TS segmentation -> note events."""
     from .audio.file_source import read_wav_mono
 
@@ -92,22 +93,48 @@ def extract_notes(vocals_path):
             raise RuntimeError(f"segment-cli failed: {proc.stderr}")
         with open(notes_path, encoding="utf-8") as f:
             notes = json.load(f)
+        if frames_out is not None:
+            with open(frames_out, "w", encoding="utf-8") as f:
+                json.dump(frames, f)
     return notes, sr
 
 
 def record_and_transcribe(duration_seconds, device="cpu", out_dir=None):
-    """Full flow: record system audio, separate vocals, extract notes."""
-    out = Path(out_dir) if out_dir else Path(tempfile.mkdtemp(prefix="ms_"))
+    """Full flow: record system audio, separate vocals, extract notes.
+
+    Saves all artifacts under `out_dir` (default: project `recordings/<timestamp>/`):
+      recorded_mix.wav, vocals.wav, pitch_frames.json, notes.json, run_info.json
+    """
+    if out_dir is None:
+        stamp = time.strftime("%Y%m%d_%H%M%S")
+        out = Path(__file__).resolve().parents[2] / "recordings" / stamp
+    else:
+        out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
+
     mix = out / "recorded_mix.wav"
 
     mix_path, sr = record_loopback(duration_seconds, mix)
     vocals = separate_vocals(mix, out, device=device)
-    notes, sr2 = extract_notes(vocals)
+    notes, sr2 = extract_notes(vocals, frames_out=out / "pitch_frames.json")
+
+    (out / "notes.json").write_text(json.dumps(notes, ensure_ascii=False, indent=2), encoding="utf-8")
+    run_info = {
+        "recorded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "duration_seconds": duration_seconds,
+        "device": device,
+        "recorded_mix": str(mix),
+        "vocals": str(vocals),
+        "recorded_sample_rate": sr,
+        "note_sample_rate": sr2,
+        "n_notes": len(notes),
+    }
+    (out / "run_info.json").write_text(json.dumps(run_info, ensure_ascii=False, indent=2), encoding="utf-8")
 
     return {
         "recorded_mix": str(mix),
         "vocals": str(vocals),
         "sample_rate": sr2,
         "notes": notes,
+        "out_dir": str(out),
     }
