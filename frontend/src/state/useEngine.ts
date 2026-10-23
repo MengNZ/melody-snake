@@ -100,6 +100,12 @@ export function useEngine() {
 
   const analyze = useCallback(
     async (duration: number) => {
+      // Stop any real-time YIN session first so it can't wipe or pollute the
+      // offline result, then clear the track so "analyzing" is unambiguous.
+      clientRef.current?.stop();
+      engine.flush();
+      engine.store.newTrack('system');
+      scheduleUpdate();
       setAnalyzing(true);
       try {
         const res = await fetch('http://127.0.0.1:8000/analyze', {
@@ -109,7 +115,6 @@ export function useEngine() {
         });
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || '分析失败');
-        engine.store.newTrack('system');
         for (const n of data.notes ?? []) {
           engine.store.appendNote({
             startTime: n.startTime,

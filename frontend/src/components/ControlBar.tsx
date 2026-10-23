@@ -98,20 +98,29 @@ export function ControlBar(props: Props) {
           onChange={(e) => setDuration(Number(e.target.value) || 20)}
           title="录制时长（秒）"
         />
-        <button onClick={props.onStart} disabled={props.running}>
+        <button onClick={props.onStart} disabled={props.running || props.analyzing}>
           开始
         </button>
-        <button onClick={props.onPause} disabled={!props.running}>
+        <button onClick={props.onPause} disabled={!props.running || props.analyzing}>
           暂停
         </button>
-        <button onClick={props.onResume} disabled={props.running}>
+        <button onClick={props.onResume} disabled={props.running || props.analyzing}>
           继续
         </button>
-        <button onClick={props.onStop}>停止</button>
-        <button onClick={props.onNew}>新建轨迹</button>
+        <button onClick={props.onStop} disabled={props.analyzing}>
+          停止
+        </button>
+        <button onClick={props.onNew} disabled={props.analyzing}>
+          新建轨迹
+        </button>
         <button onClick={props.onExportJson}>导出 JSON</button>
         <button onClick={props.onExportCsv}>导出 CSV</button>
       </div>
+      {props.analyzing && (
+        <div className="analyzing-banner">
+          🔊 正在分析系统音频：录制 → 分离人声 → 提取音符，约 40 秒后音符会出现在下方轨迹（期间请勿点「开始」）
+        </div>
+      )}
     </header>
   );
 }
