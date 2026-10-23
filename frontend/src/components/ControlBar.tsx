@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { SourceType } from '../ws/client';
 import { SUPPORTED_MAJOR_KEYS } from '../core/solfege';
 import { solfegeLabel } from '../core/solfege';
@@ -16,6 +16,7 @@ interface Props {
   analyzing: boolean;
   current: CurrentNoteInfo | null;
   onAnalyze: (duration: number) => void;
+  onAnalyzeFile: (file: File) => void;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -27,6 +28,7 @@ interface Props {
 
 export function ControlBar(props: Props) {
   const [duration, setDuration] = useState(20);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const currentLabel = props.current ? solfegeLabel(props.current.midiNote, props.selectedKey) : '—';
   return (
     <header className="control-bar">
@@ -72,6 +74,20 @@ export function ControlBar(props: Props) {
       <div className="group buttons">
         <button className="analyze" onClick={() => props.onAnalyze(duration)} disabled={props.analyzing}>
           {props.analyzing ? '分析中…（约40秒）' : `分析系统音频 ${duration}s`}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".wav,audio/wav"
+          hidden
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (file) props.onAnalyzeFile(file);
+            event.currentTarget.value = '';
+          }}
+        />
+        <button className="analyze" onClick={() => fileInputRef.current?.click()} disabled={props.analyzing}>
+          {props.analyzing ? '离线分析中…' : '选择 WAV 离线分析'}
         </button>
         <input
           className="duration"

@@ -20,23 +20,32 @@ import asyncio
 import os
 import threading
 import time
+import uuid
+import wave
+from pathlib import Path
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 
 from .audio.devices import list_sources
 from .audio.file_source import FileAudioSource
 from .audio.loopback_source import LoopbackSource
 from .audio.mic_source import MicSource
 from .engine import StreamingPitchProcessor
-from .transcribe import record_and_transcribe
+from .transcribe import record_and_transcribe, transcribe_audio_file
 
 
 class AnalyzeRequest(BaseModel):
     duration: float = 20.0
     device: str = "cpu"
+    pitch_method: str = "auto"
+
+
+def _recordings_root():
+    return Path(__file__).resolve().parents[2] / "recordings"
 
 app = FastAPI(title="Melody Snake backend")
 
@@ -60,9 +69,45 @@ def sources():
 
 @app.post("/analyze")
 def analyze(req: AnalyzeRequest):
-    """Record `duration` seconds of system audio, separate vocals (demucs),
-    extract the lead melody notes, and return them. Blocking (~duration + ~20s)."""
-    result = record_and_transcribe(req.duration, device=req.device)
+    """Record system audio, separate vocals, estimate pitch, and return notes."""
+    result = record_and_transcribe(
+        req.duration, device=req.device, pitch_method=req.pitch_method
+    )
+    return {"ok": True, **result}
+
+
+@app.post("/analyze-file")
+async def analyze_file(request: Request):
+    """Upload and analyze one local WAV with the offline melody pipeline."""
+    if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "audio/wav":
+        raise HTTPException(status_code=415, detail="请上传 WAV 音频")
+    chunks = []
+    size = 0
+    async for chunk in request.stream():
+        size += len(chunk)
+        if size > 30 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="WAV 文件不能超过 30 MB")
+        chunks.append(chunk)
+    payload = b"".join(chunks)
+    if len(payload) < 44 or payload[:4] != b"RIFF" or payload[8:12] != b"WAVE":
+        raise HTTPException(status_code=400, detail="文件不是有效的 WAV")
+
+    recordings = _recordings_root()
+    out = recordings / f"upload_{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+    out.mkdir(parents=True, exist_ok=False)
+    mix = out / "recorded_mix.wav"
+    mix.write_bytes(payload)
+    try:
+        with wave.open(str(mix), "rb") as wav:
+            if wav.getnframes() <= 0 or wav.getframerate() <= 0:
+                raise HTTPException(status_code=400, detail="WAV 中没有可分析的音频帧")
+        result = await run_in_threadpool(
+            transcribe_audio_file, mix, out, "cpu", "auto", False
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 - return analysis failure to the UI
+        raise HTTPException(status_code=500, detail=f"音频分析失败：{exc}") from exc
     return {"ok": True, **result}
 
 

@@ -33,6 +33,7 @@ export default function App() {
         analyzing={engine.analyzing}
         current={snap.current}
         onAnalyze={engine.analyze}
+        onAnalyzeFile={engine.analyzeFile}
         onStart={engine.start}
         onPause={engine.pause}
         onResume={engine.resume}

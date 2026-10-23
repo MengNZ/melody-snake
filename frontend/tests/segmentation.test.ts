@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { NoteEventDetector } from '../src/core/segmentation';
+import { DEFAULT_SEGMENTATION_CONFIG, NoteEventDetector } from '../src/core/segmentation';
 import { noteSequence, pitchFrame, runDetector } from './helpers';
 
 describe('NoteEventDetector', () => {
@@ -86,6 +86,31 @@ describe('NoteEventDetector', () => {
     }
     for (const out of d.flush()) if (out.type === 'commit') events.push(out.event.midiNote);
     expect(events).toHaveLength(1);
+  });
+
+  it('a slow glide between stable semitone notes preserves each note with tighter RMVPE tolerance', () => {
+    const d = new NoteEventDetector({
+      ...DEFAULT_SEGMENTATION_CONFIG,
+      candidateConfirmFrames: 9,
+      minNoteDurationMs: 120,
+      pitchToleranceSemitones: 0.30,
+      transitionStabilitySemitones: 0.35,
+    });
+    const events: number[] = [];
+    let tMs = 0;
+    const feed = (midi: number) => {
+      for (const out of d.process(pitchFrame(tMs / 1000, midi))) {
+        if (out.type === 'commit') events.push(out.event.midiNote);
+      }
+      tMs += 10;
+    };
+    for (let i = 0; i < 30; i++) feed(47);
+    for (let i = 0; i < 10; i++) feed(47 + (2 * i) / 9); // glide B2 -> C#3
+    for (let i = 0; i < 35; i++) feed(49);
+    for (let i = 0; i < 10; i++) feed(49 + i / 9); // glide C#3 -> D3
+    for (let i = 0; i < 35; i++) feed(50);
+    for (const out of d.flush()) if (out.type === 'commit') events.push(out.event.midiNote);
+    expect(events).toEqual([47, 49, 50]);
   });
 
   it('a slow continuous glissando is not split into many notes', () => {

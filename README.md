@@ -16,9 +16,9 @@
 | 历史音符会被新音符覆盖吗？ | ✅ 不会 | 不可变轨迹 store，只追加；修正必须显式操作并留痕 |
 | 相邻音程经过测试吗？ | ✅ 是 | C4→E4=大三度、E4→D4=下行大二度、D4→G4=纯四度等 |
 | 唱名按选定调性动态计算吗？ | ✅ 是 | C/E 大调 + 调外音升降标记，改调性不改原始音高 |
-| 能可靠分离完整歌曲的主旋律吗？ | ❌ 不能 | 单一基频只适合单音/近单旋律；多声源分离明确未做 |
+| 能可靠提取完整歌曲的主唱旋律吗？ | ⚠️ 尚未达标 | 已加入可从界面选择 WAV 的 Demucs + RMVPE 离线路线；目标录音首句音级匹配 13/13，但对用户手写简谱字面八度仅 1/13 MIDI 完全匹配，且没有独立校准过的音符边界；见 [`docs/phase4-diagnosis.md`](docs/phase4-diagnosis.md) |
 
-**首版只承诺「单音或近似单旋律」。** 完整歌曲是主唱 + 伴奏 + 贝斯 + 鼓的混合信号，单一基频估计不能假定一定对应人声主旋律。
+**完整歌曲的主唱识别仍处于验证阶段。** 即使人声分离成功，也必须检查 F0 与音符切分；当前不能把“有音符输出”当作正确。
 
 ---
 
@@ -42,6 +42,10 @@ YIN 音高估计  ──PitchEstimate 帧──►  NoteEventDetector 状态机�
 - **后端只做** 音频采集 + 音高估计（DSP 密集，Python + numpy 最可靠）。
 - **前端只做** 切分、轨迹、音程、唱名、UI（纯逻辑，Vitest 测合成序列）。
 - 音高识别与唱名映射**完全分离**；改调性只更新乐理解释，不改原始音高。
+
+实时 WebSocket 仍使用 YIN；离线 `/analyze`（系统音频）和 `/analyze-file`（上传 WAV）在本机 RMVPE 权重可用时使用
+`Demucs 人声分离 → RMVPE F0 → 音符切分`，无权重时自动保留旧的
+`Demucs → YIN` 路径。
 
 详细见 [`docs/ADR.md`](docs/ADR.md)。
 
@@ -80,12 +84,18 @@ cd D:\melody-snake
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r backend\requirements.txt
 
+# 可选：下载 RMVPE 预训练模型（362 MB，校验 SHA-256，不纳入 Git）
+cd D:\melody-snake\backend
+..\.venv\Scripts\python.exe -m benchmark.download_rmvpe_model
+
 # 前端依赖
 cd D:\melody-snake\frontend
 npm install
 ```
 
 > 若 `pypi.org` 直连报 SSL 错误，属网络问题，用上面的清华镜像即可。
+> RMVPE 权重从 Hugging Face 下载；若网络无法访问，可在 PowerShell 中先设置
+> `$env:HF_ENDPOINT = 'https://hf-mirror.com'` 再运行下载命令。
 
 ---
 
@@ -119,18 +129,20 @@ cd D:\melody-snake\backend && ..\.venv\Scripts\python.exe -m melody_snake.main
 
 **用音频文件快速验证**：选「音频文件」→ 填 WAV 路径（如 `D:\song.wav`）→ 开始。项目里已有测试旋律 `D:\melody-snake\test_melody.wav`（C4→E4→D4→G4）。
 
+离线分析按钮会捕获系统音频并分离人声；如果 RMVPE 权重已安装，使用 RMVPE 估计歌声音高，否则回退到 YIN。
+
 ---
 
 ## 七、测试
 
 ```bash
-# 前端（Vitest，45 个测试）
+# 前端（Vitest，46 个测试）
 cd D:\melody-snake\frontend && npm test
 
 # 前端类型检查 + 构建
 cd D:\melody-snake\frontend && npm run build
 
-# 后端（pytest，20 个测试，含 WebSocket 集成 + 基准回归）
+# 后端（pytest，28 个测试，含 WebSocket 集成 + 基准回归）
 cd D:\melody-snake\backend && ..\.venv\Scripts\python.exe -m pytest -q
 ```
 

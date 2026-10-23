@@ -131,6 +131,39 @@ export function useEngine() {
     [engine, scheduleUpdate],
   );
 
+  const analyzeFile = useCallback(
+    async (file: File) => {
+      setAnalyzing(true);
+      try {
+        const res = await fetch('http://127.0.0.1:8000/analyze-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'audio/wav' },
+          body: file,
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.detail || data.error || '音频分析失败');
+        engine.store.newTrack('file');
+        for (const n of data.notes ?? []) {
+          engine.store.appendNote({
+            startTime: n.startTime,
+            endTime: n.endTime,
+            midiNote: n.midiNote,
+            confidence: n.confidence ?? 0.9,
+            status: 'confirmed',
+            source: 'auto',
+          });
+        }
+        setStatus({ state: 'ended', sampleRate: data.sample_rate ?? null, source: 'file', error: null });
+        scheduleUpdate();
+      } catch (e) {
+        setStatus((prev) => ({ ...prev, state: 'error', error: String(e) }));
+      } finally {
+        setAnalyzing(false);
+      }
+    },
+    [engine, scheduleUpdate],
+  );
+
   const exportJSON = useCallback(() => {
     const s = engine.store.getSnapshot();
     return trackToJSON(s.track, s.intervals);
@@ -166,6 +199,7 @@ export function useEngine() {
     selectedKey: snap.track.track.selectedKey,
     analyzing,
     analyze,
+    analyzeFile,
     start,
     pause,
     resume,

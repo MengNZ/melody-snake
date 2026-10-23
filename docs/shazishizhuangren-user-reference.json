@@ -1,0 +1,37 @@
+{
+  "title": "万能青年旅店《杀死那个石家庄人》用户简谱初稿",
+  "source": "用户人工听辨；未经独立核验；不可根据模型结果改写",
+  "capture_identity_confirmed_by_user": "recordings/20261023_130355/recorded_mix.wav is a clip of the target song",
+  "capture_start_lyric": "傍晚六点下班 (user-confirmed)",
+  "key": "D major (user-provided, unverified)",
+  "mapping_assumption": "User-confirmed unmarked 1=D4. Sequence evaluation preserves the explicit comma on 1, as one octave below (D3); all other numbers are unmarked. This literal octave interpretation is still unverified against an independent score.",
+  "timing_available": false,
+  "notes": [],
+  "phrases": [
+    {
+      "lyrics": "傍晚六点下班，换掉药厂的衣裳",
+      "number_notation_original": "6 6 7 6 7 1, 6 6 7 6 7 1 6",
+      "uncertain": true,
+      "notes": []
+    },
+    {
+      "lyrics": "妻子在熬粥，我去喝几瓶啤酒",
+      "number_notation_original": "6 7 6 7 1， 6 6 7 6 7 1 6",
+      "uncertain": true,
+      "notes": []
+    },
+    {
+      "lyrics": "如此生活三十年，直到大厦崩塌",
+      "number_notation_original": "5 5 1 6 5 5 3，1 6 1 2 2 3",
+      "uncertain": true,
+      "notes": []
+    },
+    {
+      "lyrics": "云层深处的黑暗啊，淹没心底的景观",
+      "number_notation_original": "5 5 1 6 5 5 6 6，6 7 1 2 6 5 6",
+      "uncertain": true,
+      "notes": []
+    }
+  ],
+  "schema_note": "The user confirmed the 1=D4 mapping convention. Each notes array remains empty until each syllable's actual octave is independently resolved; add start_time/end_time only after alignment to the exact recording, and retain uncertain/comments on populated events."
+}

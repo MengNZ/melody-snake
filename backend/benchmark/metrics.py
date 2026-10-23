@@ -18,7 +18,9 @@ Definitions:
   f1              = 2*P*R/(P+R)
   pitch_accuracy  = hits / (hits + octave + wrong)   [of temporally-matched notes]
   octave_error_rate = octave / n_predicted
-  mean_abs_onset_error = mean(|pred.startTime - ref.start|) over hits
+  mean_abs_onset_error = mean(|pred.startTime - ref.start|) over pitch-correct hits
+  interval_accuracy = correct interval / adjacent reference pairs whose two notes
+    both have temporal matches; pitch-class intervals ignore octave transposition
 """
 
 
@@ -32,6 +34,7 @@ def evaluate(pred, ref, overlap_ratio=0.5, pitch_tol=0.5):
 
     used_pred = [False] * len(preds)
     matched_ref = [False] * len(refs)
+    matched_pred_for_ref = {}
 
     hits = []      # (pred, ref, diff, onset_err)
     octaves = []   # (pred, ref, diff, onset_err)
@@ -55,6 +58,7 @@ def evaluate(pred, ref, overlap_ratio=0.5, pitch_tol=0.5):
             used_pred[best_i] = True
             matched_ref[ri] = True
             p = preds[best_i]
+            matched_pred_for_ref[ri] = p
             diff = p["midiNote"] - r["midi"]
             onset_err = p["startTime"] - r["start"]
             if abs(diff) <= pitch_tol:
@@ -81,6 +85,24 @@ def evaluate(pred, ref, overlap_ratio=0.5, pitch_tol=0.5):
     onset_errs = [abs(h[3]) for h in hits]
     mean_onset = float(np_mean(onset_errs)) if onset_errs else None
 
+    interval_errors = []
+    pitch_class_interval_errors = []
+    for ri in range(len(refs) - 1):
+        if ri not in matched_pred_for_ref or ri + 1 not in matched_pred_for_ref:
+            continue
+        ref_interval = refs[ri + 1]["midi"] - refs[ri]["midi"]
+        pred_interval = (matched_pred_for_ref[ri + 1]["midiNote"]
+                         - matched_pred_for_ref[ri]["midiNote"])
+        interval_errors.append(abs(pred_interval - ref_interval))
+        pitch_class_interval_errors.append((pred_interval - ref_interval) % 12)
+    n_intervals = len(interval_errors)
+    interval_accuracy = (sum(error <= pitch_tol for error in interval_errors) / n_intervals
+                         if n_intervals else None)
+    pitch_class_interval_accuracy = (
+        sum(error == 0 for error in pitch_class_interval_errors) / n_intervals
+        if n_intervals else None
+    )
+
     return {
         "n_reference": n_ref,
         "n_predicted": n_pred,
@@ -93,8 +115,16 @@ def evaluate(pred, ref, overlap_ratio=0.5, pitch_tol=0.5):
         "note_recall": recall,
         "f1": f1,
         "pitch_accuracy": pitch_acc,
+        "adjacent_interval_pairs": n_intervals,
+        "interval_accuracy": interval_accuracy,
+        "pitch_class_interval_accuracy": pitch_class_interval_accuracy,
         "octave_error_rate": oct_rate,
         "mean_abs_onset_error_s": mean_onset,
+        "interval_definitions": {
+            "matching": "consecutive reference notes count only when both have temporal event matches",
+            "interval_accuracy": "signed semitone interval difference is within pitch_tol; octave matters",
+            "pitch_class_interval_accuracy": "directed semitone interval difference is 0 modulo 12; octave is ignored",
+        },
     }
 
 
